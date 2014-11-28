@@ -117,9 +117,15 @@ void GlobalPlanner::initialize(std::string name, costmap_2d::Costmap2D* costmap,
         bool use_grid_path;
         private_nh.param("use_grid_path", use_grid_path, false);
         if (use_grid_path)
+        {
             path_maker_ = new GridPath(p_calc_);
+            ROS_INFO("use_grid_path: true");
+        }
         else
+        {
             path_maker_ = new GradientPath(p_calc_);
+            ROS_ERROR("use_grid_path: false (default)");
+        }
 
         plan_pub_ = private_nh.advertise<nav_msgs::Path>("plan", 1);
         potential_pub_ = private_nh.advertise<nav_msgs::OccupancyGrid>("potential", 1);
