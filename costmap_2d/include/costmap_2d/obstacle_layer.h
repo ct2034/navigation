@@ -35,8 +35,9 @@
  * Author: Eitan Marder-Eppstein
  *         David V. Lu!!
  *********************************************************************/
-#ifndef OBSTACLE_COSTMAP_PLUGIN_H_
-#define OBSTACLE_COSTMAP_PLUGIN_H_
+#ifndef COSTMAP_2D_OBSTACLE_LAYER_H_
+#define COSTMAP_2D_OBSTACLE_LAYER_H_
+
 #include <ros/ros.h>
 #include <costmap_2d/costmap_layer.h>
 #include <costmap_2d/layered_costmap.h>
@@ -57,6 +58,7 @@
 
 namespace costmap_2d
 {
+
 class ObstacleLayer : public CostmapLayer
 {
 public:
@@ -65,6 +67,7 @@ public:
     costmap_ = NULL; // this is the unsigned char* member of parent class Costmap2D.
   }
 
+  virtual ~ObstacleLayer();
   virtual void onInitialize();
   virtual void updateBounds(double robot_x, double robot_y, double robot_yaw, double* min_x, double* min_y, double* max_x,
                              double* max_y);
@@ -106,17 +109,9 @@ public:
   void pointCloud2Callback(const sensor_msgs::PointCloud2ConstPtr& message,
                            const boost::shared_ptr<costmap_2d::ObservationBuffer>& buffer);
 
-  void setResetBounds(double mx0, double mx1, double my0, double my1)
-  {
-    reset_min_x_ = std::min(mx0, reset_min_x_);
-    reset_max_x_ = std::max(mx1, reset_max_x_);
-    reset_min_y_ = std::min(my0, reset_min_y_);
-    reset_max_y_ = std::max(my1, reset_max_y_);
-    has_been_reset_ = true;
-  }
-
   // for testing purposes
   void addStaticObservation(costmap_2d::Observation& obs, bool marking, bool clearing);
+  void clearStaticObservations(bool marking, bool clearing);
 
 protected:
 
@@ -170,9 +165,6 @@ protected:
   bool rolling_window_;
   dynamic_reconfigure::Server<costmap_2d::ObstaclePluginConfig> *dsrv_;
 
-  bool has_been_reset_;
-  double reset_min_x_, reset_max_x_, reset_min_y_, reset_max_y_;
-
   FootprintLayer footprint_layer_; ///< @brief clears the footprint in this obstacle layer.
   
   int combination_method_;
@@ -180,6 +172,7 @@ protected:
 private:
   void reconfigureCB(costmap_2d::ObstaclePluginConfig &config, uint32_t level);
 };
-}
-#endif
 
+}  // namespace costmap_2d
+
+#endif  // COSTMAP_2D_OBSTACLE_LAYER_H_

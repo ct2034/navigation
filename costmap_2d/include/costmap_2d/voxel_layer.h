@@ -35,8 +35,9 @@
  * Author: Eitan Marder-Eppstein
  *         David V. Lu!!
  *********************************************************************/
-#ifndef VOXEL_COSTMAP_PLUGIN_H_
-#define VOXEL_COSTMAP_PLUGIN_H_
+#ifndef COSTMAP_2D_VOXEL_LAYER_H_
+#define COSTMAP_2D_VOXEL_LAYER_H_
+
 #include <ros/ros.h>
 #include <costmap_2d/layer.h>
 #include <costmap_2d/layered_costmap.h>
@@ -54,6 +55,7 @@
 #include <costmap_2d/VoxelPluginConfig.h>
 #include <costmap_2d/obstacle_layer.h>
 #include <voxel_grid/voxel_grid.h>
+
 namespace costmap_2d
 {
 
@@ -65,6 +67,8 @@ public:
   {
     costmap_ = NULL; // this is the unsigned char* member of parent class's parent class Costmap2D.
   }
+
+  virtual ~VoxelLayer();
 
   virtual void onInitialize();
   virtual void updateBounds(double robot_x, double robot_y, double robot_yaw, double* min_x, double* min_y, double* max_x,
@@ -81,6 +85,8 @@ public:
 
 protected:
   virtual void setupDynamicReconfigure(ros::NodeHandle& nh);
+
+  virtual void resetMaps();
 
 private:
   void reconfigureCB(costmap_2d::VoxelPluginConfig &config, uint32_t level);
@@ -138,8 +144,8 @@ private:
   {
     return sqrt((x1 - x0) * (x1 - x0) + (y1 - y0) * (y1 - y0) + (z1 - z0) * (z1 - z0));
   }
-
 };
-}
-#endif
 
+}  // namespace costmap_2d
+
+#endif  // COSTMAP_2D_VOXEL_LAYER_H_

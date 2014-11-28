@@ -1,7 +1,44 @@
-#include<costmap_2d/obstacle_layer.h>
-#include<costmap_2d/costmap_math.h>
-
+/*********************************************************************
+ *
+ * Software License Agreement (BSD License)
+ *
+ *  Copyright (c) 2008, 2013, Willow Garage, Inc.
+ *  All rights reserved.
+ *
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions
+ *  are met:
+ *
+ *   * Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *   * Redistributions in binary form must reproduce the above
+ *     copyright notice, this list of conditions and the following
+ *     disclaimer in the documentation and/or other materials provided
+ *     with the distribution.
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
+ *     contributors may be used to endorse or promote products derived
+ *     from this software without specific prior written permission.
+ *
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ *  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ *  COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ *  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ *  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ *  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ *  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ *  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ *  POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Author: Eitan Marder-Eppstein
+ *         David V. Lu!!
+ *********************************************************************/
+#include <costmap_2d/obstacle_layer.h>
+#include <costmap_2d/costmap_math.h>
 #include <pluginlib/class_list_macros.h>
+
 PLUGINLIB_EXPORT_CLASS(costmap_2d::ObstacleLayer, costmap_2d::Layer)
 
 using costmap_2d::NO_INFORMATION;
@@ -28,7 +65,6 @@ void ObstacleLayer::onInitialize()
 
   ObstacleLayer::matchSize();
   current_ = true;
-  has_been_reset_ = false;
 
   global_frame_ = layered_costmap_->getGlobalFrameID();
   double transform_tolerance;
@@ -38,6 +74,10 @@ void ObstacleLayer::onInitialize()
   //get the topics that we'll subscribe to from the parameter server
   nh.param("observation_sources", topics_string, std::string(""));
   ROS_INFO("    Subscribed to Topics: %s", topics_string.c_str());
+
+  // get our tf prefix
+  ros::NodeHandle prefix_nh;
+  const std::string tf_prefix = tf::getPrefixParam(prefix_nh);
 
   //now we need to split the topics based on whitespace which we can use a stringstream for
   std::stringstream ss(topics_string);
@@ -62,6 +102,11 @@ void ObstacleLayer::onInitialize()
     source_node.param("inf_is_valid", inf_is_valid, false);
     source_node.param("clearing", clearing, false);
     source_node.param("marking", marking, true);
+
+    if (!sensor_frame.empty())
+    {
+      sensor_frame = tf::resolve(tf_prefix, sensor_frame);
+    }
 
     if (!(data_type == "PointCloud2" || data_type == "PointCloud" || data_type == "LaserScan"))
     {
@@ -191,6 +236,11 @@ void ObstacleLayer::setupDynamicReconfigure(ros::NodeHandle& nh)
   dsrv_->setCallback(cb);
 }
 
+ObstacleLayer::~ObstacleLayer()
+{
+    if(dsrv_)
+        delete dsrv_;
+}
 void ObstacleLayer::reconfigureCB(costmap_2d::ObstaclePluginConfig &config, uint32_t level)
 {
   enabled_ = config.enabled;
@@ -291,18 +341,7 @@ void ObstacleLayer::updateBounds(double robot_x, double robot_y, double robot_ya
     updateOrigin(robot_x - getSizeInMetersX() / 2, robot_y - getSizeInMetersY() / 2);
   if (!enabled_)
     return;
-  if (has_been_reset_)
-  {
-    *min_x = std::min(reset_min_x_, *min_x);
-    *min_y = std::min(reset_min_y_, *min_y);
-    *max_x = std::max(reset_max_x_, *max_x);
-    *max_y = std::max(reset_max_y_, *max_y);
-    reset_min_x_ = 1e6;
-    reset_min_y_ = 1e6;
-    reset_max_x_ = -1e6;
-    reset_max_y_ = -1e6;
-    has_been_reset_ = false;
-  }
+  useExtraBounds(min_x, min_y, max_x, max_y);
 
   bool current = true;
   std::vector<Observation> observations, clearing_observations;
@@ -391,6 +430,13 @@ void ObstacleLayer::addStaticObservation(costmap_2d::Observation& obs, bool mark
     static_marking_observations_.push_back(obs);
   if(clearing)
     static_clearing_observations_.push_back(obs);
+}
+
+void ObstacleLayer::clearStaticObservations(bool marking, bool clearing){
+  if(marking)
+    static_marking_observations_.clear();
+  if(clearing)
+    static_clearing_observations_.clear();
 }
 
 bool ObstacleLayer::getMarkingObservations(std::vector<Observation>& marking_observations) const
@@ -544,7 +590,6 @@ void ObstacleLayer::reset()
     deactivate();
     resetMaps();
     current_ = true;
-    has_been_reset_ = false;
     activate();
 }
 
@@ -553,4 +598,4 @@ void ObstacleLayer::onFootprintChanged()
   footprint_layer_.onFootprintChanged();
 }
 
-} // end namespace costmap_2d
+}  // namespace costmap_2d

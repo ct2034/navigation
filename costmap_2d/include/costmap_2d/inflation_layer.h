@@ -35,8 +35,9 @@
  * Author: Eitan Marder-Eppstein
  *         David V. Lu!!
  *********************************************************************/
-#ifndef INFLATION_COSTMAP_PLUGIN_H_
-#define INFLATION_COSTMAP_PLUGIN_H_
+#ifndef COSTMAP_2D_INFLATION_LAYER_H_
+#define COSTMAP_2D_INFLATION_LAYER_H_
+
 #include <ros/ros.h>
 #include <costmap_2d/layer.h>
 #include <costmap_2d/layered_costmap.h>
@@ -90,6 +91,8 @@ public:
   virtual ~InflationLayer()
   {
     deleteKernels();
+    if(dsrv_)
+        delete dsrv_;
   }
 
   virtual void onInitialize();
@@ -188,6 +191,7 @@ private:
 
   bool need_reinflation_; ///< Indicates that the entire costmap should be reinflated next time around.
 };
-}
-#endif
 
+}  // namespace costmap_2d
+
+#endif  // COSTMAP_2D_INFLATION_LAYER_H_

@@ -1,3 +1,40 @@
+/*********************************************************************
+ *
+ * Software License Agreement (BSD License)
+ *
+ *  Copyright (c) 2008, 2013, Willow Garage, Inc.
+ *  All rights reserved.
+ *
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions
+ *  are met:
+ *
+ *   * Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *   * Redistributions in binary form must reproduce the above
+ *     copyright notice, this list of conditions and the following
+ *     disclaimer in the documentation and/or other materials provided
+ *     with the distribution.
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
+ *     contributors may be used to endorse or promote products derived
+ *     from this software without specific prior written permission.
+ *
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ *  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ *  COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ *  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ *  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ *  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ *  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ *  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ *  POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Author: Eitan Marder-Eppstein
+ *         David V. Lu!!
+ *********************************************************************/
 #include <costmap_2d/voxel_layer.h>
 #include <pluginlib/class_list_macros.h>
 #include <pcl_conversions/pcl_conversions.h>
@@ -35,6 +72,12 @@ void VoxelLayer::setupDynamicReconfigure(ros::NodeHandle& nh)
   dsrv_->setCallback(cb);
 }
 
+VoxelLayer::~VoxelLayer()
+{
+  if(dsrv_)
+    delete dsrv_;
+}
+
 void VoxelLayer::reconfigureCB(costmap_2d::VoxelPluginConfig &config, uint32_t level)
 {
   enabled_ = config.enabled;
@@ -63,6 +106,12 @@ void VoxelLayer::reset()
   activate();
 }
 
+void VoxelLayer::resetMaps()
+{
+  Costmap2D::resetMaps();
+  voxel_grid_.reset();
+}
+
 void VoxelLayer::updateBounds(double robot_x, double robot_y, double robot_yaw, double* min_x,
                                        double* min_y, double* max_x, double* max_y)
 {
@@ -70,18 +119,7 @@ void VoxelLayer::updateBounds(double robot_x, double robot_y, double robot_yaw, 
     updateOrigin(robot_x - getSizeInMetersX() / 2, robot_y - getSizeInMetersY() / 2);
   if (!enabled_)
     return;
-  if (has_been_reset_)
-  {
-    *min_x = std::min(reset_min_x_, *min_x);
-    *min_y = std::min(reset_min_y_, *min_y);
-    *max_x = std::max(reset_max_x_, *max_x);
-    *max_y = std::max(reset_max_y_, *max_y);
-    reset_min_x_ = 1e6;
-    reset_min_y_ = 1e6;
-    reset_max_x_ = -1e6;
-    reset_max_y_ = -1e6;
-    has_been_reset_ = false;
-  }
+  useExtraBounds(min_x, min_y, max_x, max_y);
 
   bool current = true;
   std::vector<Observation> observations, clearing_observations;
@@ -398,7 +436,6 @@ void VoxelLayer::updateOrigin(double new_origin_x, double new_origin_y)
   //make sure to clean up
   delete[] local_map;
   delete[] local_voxel_map;
-
 }
 
-}
+}  // namespace costmap_2d

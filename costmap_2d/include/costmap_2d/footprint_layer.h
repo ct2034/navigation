@@ -35,8 +35,9 @@
  * Author: Eitan Marder-Eppstein
  *         David V. Lu!!
  *********************************************************************/
-#ifndef FOOTPRINT_COSTMAP_PLUGIN_H_
-#define FOOTPRINT_COSTMAP_PLUGIN_H_
+#ifndef COSTMAP_2D_FOOTPRINT_LAYER_H_
+#define COSTMAP_2D_FOOTPRINT_LAYER_H_
+
 #include <ros/ros.h>
 #include <costmap_2d/layer.h>
 #include <costmap_2d/layered_costmap.h>
@@ -49,10 +50,12 @@
 
 namespace costmap_2d
 {
+
 class FootprintLayer : public Layer
 {
 public:
   virtual void onInitialize();
+  virtual ~FootprintLayer();
 
   virtual void updateBounds(double robot_x, double robot_y, double robot_yaw, double* min_x, double* min_y, double* max_x,
                              double* max_y);
@@ -65,6 +68,8 @@ private:
   ros::Publisher footprint_pub_;
   dynamic_reconfigure::Server<costmap_2d::GenericPluginConfig> *dsrv_;
 };
-}
-#endif
+
+}  // namespace costmap_2d
+
+#endif  // COSTMAP_2D_FOOTPRINT_LAYER_H_
 

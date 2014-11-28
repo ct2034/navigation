@@ -259,9 +259,9 @@ namespace move_base {
             }
           }
         }
- 
+
         planner_ = bgp_loader_.createInstance(config.base_global_planner);
-        
+
         // wait for the current planner to finish planning
         boost::unique_lock<boost::mutex> lock(planner_mutex_);
 
@@ -539,7 +539,6 @@ namespace move_base {
     cmd_vel.linear.y = 0.0;
     cmd_vel.angular.z = 0.0;
     vel_pub_.publish(cmd_vel);
-
   }
 
   bool MoveBase::isQuaternionValid(const geometry_msgs::Quaternion& q){
@@ -593,7 +592,6 @@ namespace move_base {
     geometry_msgs::PoseStamped global_pose_msg;
     tf::poseStampedTFToMsg(global_pose, global_pose_msg);
     return global_pose_msg;
-
   }
 
   void MoveBase::planThread(){
@@ -650,12 +648,14 @@ namespace move_base {
         ros::Time attempt_end = last_valid_plan_ + ros::Duration(planner_patience_);
 
         //check if we've tried to make a plan for over our time limit
-        if(ros::Time::now() > attempt_end){
+        lock.lock();
+        if(ros::Time::now() > attempt_end && runPlanner_){
           //we'll move into our obstacle clearing mode
           state_ = CLEARING;
           publishZeroVelocity();
           recovery_trigger_ = PLANNING_R;
         }
+        lock.unlock();
       }
 
       if(!p_freq_change_ && planner_frequency_ > 0)
