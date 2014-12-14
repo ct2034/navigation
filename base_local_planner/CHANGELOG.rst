@@ -2,6 +2,11 @@
 Changelog for package base_local_planner
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.11.14 (2014-12-05)
+--------------------
+* Fixed setting child_frame_id in base_local_planner::OdometryHelperRos
+* Contributors: Mani Monajjemi
+
 1.11.13 (2014-10-02)
 --------------------
 

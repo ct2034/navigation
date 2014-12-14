@@ -2,6 +2,11 @@
 Changelog for package map_server
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.11.14 (2014-12-05)
+--------------------
+* prevent inf loop
+* Contributors: Jeremie Deray
+
 1.11.13 (2014-10-02)
 --------------------
 

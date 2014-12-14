@@ -2,6 +2,11 @@
 Changelog for package navigation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.11.14 (2014-12-05)
+--------------------
+* add global planner run depend in meta package.
+* Contributors: Jihoon Lee
+
 1.11.13 (2014-10-02)
 --------------------
 
