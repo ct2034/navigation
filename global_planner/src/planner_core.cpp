@@ -61,7 +61,6 @@ void betterplan(const nav_msgs::Path msg)
 {
     _msg = msg;
     _got_plan = true;
-    ROS_INFO("%s", "GOT A PLAN");
 }
 
 void GlobalPlanner::outlineMap(unsigned char* costarr, int nx, int ny, unsigned char value) {
@@ -327,12 +326,10 @@ bool GlobalPlanner::makePlan(const geometry_msgs::PoseStamped& start, const geom
     _got_plan = false;
 
     publishPlan(plan);
-    ROS_INFO("%s", "PUBLISHED");
 
     while(! _got_plan)
     {
         ros::spinOnce();
-        //ROS_INFO("%s", ".");
     }
     
     plan.clear();
