@@ -190,6 +190,8 @@ class GlobalPlanner : public nav_core::BaseGlobalPlanner {
         ros::Publisher potential_pub_;
         int publish_scale_;
 
+        ros::Subscriber sub_;
+
         void outlineMap(unsigned char* costarr, int nx, int ny, unsigned char value);
         unsigned char* cost_array_;
         float* potential_array_;

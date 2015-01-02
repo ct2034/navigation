@@ -52,6 +52,18 @@ PLUGINLIB_EXPORT_CLASS(global_planner::GlobalPlanner, nav_core::BaseGlobalPlanne
 
 namespace global_planner {
 
+bool _got_plan = false;
+nav_msgs::Path _msg;
+
+void betterplan(const nav_msgs::Path msg);
+
+void betterplan(const nav_msgs::Path msg)
+{
+    _msg = msg;
+    _got_plan = true;
+    ROS_INFO("%s", "GOT A PLAN");
+}
+
 void GlobalPlanner::outlineMap(unsigned char* costarr, int nx, int ny, unsigned char value) {
     unsigned char* pc = costarr;
     for (int i = 0; i < nx; i++)
@@ -119,12 +131,10 @@ void GlobalPlanner::initialize(std::string name, costmap_2d::Costmap2D* costmap,
         if (use_grid_path)
         {
             path_maker_ = new GridPath(p_calc_);
-            ROS_INFO("use_grid_path: true");
         }
         else
         {
             path_maker_ = new GradientPath(p_calc_);
-            ROS_ERROR("use_grid_path: false (default)");
         }
 
         plan_pub_ = private_nh.advertise<nav_msgs::Path>("plan", 1);
@@ -145,6 +155,8 @@ void GlobalPlanner::initialize(std::string name, costmap_2d::Costmap2D* costmap,
         tf_prefix_ = tf::getPrefixParam(prefix_nh);
 
         make_plan_srv_ = private_nh.advertiseService("make_plan", &GlobalPlanner::makePlanService, this);
+
+        sub_ = private_nh.subscribe("better_plan", 1, betterplan);
 
         dsrv_ = new dynamic_reconfigure::Server<global_planner::GlobalPlannerConfig>(ros::NodeHandle("~/" + name));
         dynamic_reconfigure::Server<global_planner::GlobalPlannerConfig>::CallbackType cb = boost::bind(
@@ -309,8 +321,27 @@ bool GlobalPlanner::makePlan(const geometry_msgs::PoseStamped& start, const geom
         ROS_ERROR("Failed to get a plan.");
     }
 
-    //publish the plan for visualization purposes
+    // -------------------------------------------------------------------------------------
+    // quick and dirty interface to optimizer
+    
+    _got_plan = false;
+
     publishPlan(plan);
+    ROS_INFO("%s", "PUBLISHED");
+
+    while(! _got_plan)
+    {
+        ros::spinOnce();
+        //ROS_INFO("%s", ".");
+    }
+    
+    plan.clear();
+    for (unsigned int i = 0; i < _msg.poses.size(); i++) {
+        plan.push_back(_msg.poses[i]);
+    }
+    
+    // -------------------------------------------------------------------------------------
+
     delete potential_array_;
     return !plan.empty();
 }
