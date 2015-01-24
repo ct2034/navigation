@@ -1,1 +1,8 @@
 *~
+amcl/*
+fake_localization/*
+map_server/*
+move_slow_and_clear/*
+robot_pose_ekf/*
+rotate_recovery/*
+voxel_grid/*

@@ -225,11 +225,9 @@ namespace base_local_planner{
     double y_i = y;
     double theta_i = theta;
 
-    double vx_i, vy_i, vtheta_i;
-
-    vx_i = vx;
-    vy_i = vy;
-    vtheta_i = vtheta;
+    double vx_i = vx;
+    double vy_i = vy;
+    double vtheta_i = vtheta;
 
     //compute the magnitude of the velocities
     double vmag = hypot(vx_samp, vy_samp); // ?!?!?
@@ -912,6 +910,8 @@ namespace base_local_planner{
     //if the trajectory failed because the footprint hits something, we're still going to back up
     if(best_traj->cost_ == -1.0)
       best_traj->cost_ = 1.0;
+
+    ROS_INFO(">>> A best trajectory %f", best_traj->cost_);
 
     return *best_traj;
 

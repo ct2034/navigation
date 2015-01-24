@@ -67,15 +67,15 @@ namespace base_local_planner {
         default_config_ = config;
         setup_ = true;
       }
-      tc_->reconfigure(config);
+      ep_->reconfigure(config);
       reached_goal_ = false;
   }
 
   EnergyPlannerROS::EnergyPlannerROS() :
-      world_model_(NULL), tc_(NULL), costmap_ros_(NULL), tf_(NULL), setup_(false), initialized_(false), odom_helper_("odom") {}
+      world_model_(NULL), ep_(NULL), costmap_ros_(NULL), tf_(NULL), setup_(false), initialized_(false), odom_helper_("odom") {}
 
   EnergyPlannerROS::EnergyPlannerROS(std::string name, tf::TransformListener* tf, costmap_2d::Costmap2DROS* costmap_ros) :
-      world_model_(NULL), tc_(NULL), costmap_ros_(NULL), tf_(NULL), setup_(false), initialized_(false), odom_helper_("odom") {
+      world_model_(NULL), ep_(NULL), costmap_ros_(NULL), tf_(NULL), setup_(false), initialized_(false), odom_helper_("odom") {
 
       //initialize the planner
       initialize(name, tf, costmap_ros);
@@ -161,7 +161,7 @@ namespace base_local_planner {
           sim_period_ = 0.05;
         }
       }
-      ROS_INFO("Sim period is set to %.2f", sim_period_);
+      ROS_INFO("<energy p> Sim period is set to %.2f", sim_period_);
 
       private_nh.param("sim_time", sim_time, 1.0);
       private_nh.param("sim_granularity", sim_granularity, 0.025);
@@ -234,13 +234,13 @@ namespace base_local_planner {
 
       footprint_spec_ = costmap_ros_->getRobotFootprint();
 
-      tc_ = new EnergyPlanner(*world_model_, *costmap_, footprint_spec_,
+      ep_ = new EnergyPlanner(*world_model_, *costmap_, footprint_spec_,
           acc_lim_x_, acc_lim_y_, acc_lim_theta_, sim_time, sim_granularity, vx_samples, vtheta_samples, pdist_scale,
           gdist_scale, occdist_scale, heading_lookahead, oscillation_reset_dist, escape_reset_dist, escape_reset_theta, holonomic_robot,
           max_vel_x, min_vel_x, max_vel_th_, min_vel_th_, min_in_place_vel_th_, backup_vel,
           dwa, heading_scoring, heading_scoring_timestep, meter_scoring, simple_attractor, y_vels, stop_time_buffer, sim_period_, angular_sim_granularity);
 
-      map_viz_.initialize(name, global_frame_, boost::bind(&EnergyPlanner::getCellCosts, tc_, _1, _2, _3, _4, _5, _6));
+      map_viz_.initialize(name, global_frame_, boost::bind(&EnergyPlanner::getCellCosts, ep_, _1, _2, _3, _4, _5, _6));
       initialized_ = true;
 
       dsrv_ = new dynamic_reconfigure::Server<BaseLocalPlannerConfig>(private_nh);
@@ -280,8 +280,8 @@ namespace base_local_planner {
     //make sure to clean things up
     delete dsrv_;
 
-    if(tc_ != NULL)
-      delete tc_;
+    if(ep_ != NULL)
+      delete ep_;
 
     if(world_model_ != NULL)
       delete world_model_;
@@ -298,7 +298,7 @@ namespace base_local_planner {
 
     //we do want to check whether or not the command is valid
     double yaw = tf::getYaw(global_pose.getRotation());
-    bool valid_cmd = tc_->checkTrajectory(global_pose.getOrigin().getX(), global_pose.getOrigin().getY(), yaw, 
+    bool valid_cmd = ep_->checkTrajectory(global_pose.getOrigin().getX(), global_pose.getOrigin().getY(), yaw, 
         robot_vel.getOrigin().getX(), robot_vel.getOrigin().getY(), vel_yaw, vx, vy, vth);
 
     //if we have a valid command, we'll pass it on, otherwise we'll command all zeros
@@ -344,7 +344,7 @@ namespace base_local_planner {
       : std::max( min_vel_th_, std::min( -1.0 * min_in_place_vel_th_, v_theta_samp ));
 
     //we still want to lay down the footprint of the robot and check if the action is legal
-    bool valid_cmd = tc_->checkTrajectory(global_pose.getOrigin().getX(), global_pose.getOrigin().getY(), yaw, 
+    bool valid_cmd = ep_->checkTrajectory(global_pose.getOrigin().getX(), global_pose.getOrigin().getY(), yaw, 
         robot_vel.getOrigin().getX(), robot_vel.getOrigin().getY(), vel_yaw, 0.0, 0.0, v_theta_samp);
 
     ROS_DEBUG("Moving to desired goal orientation, th cmd: %.2f, valid_cmd: %d", v_theta_samp, valid_cmd);
@@ -447,8 +447,8 @@ namespace base_local_planner {
       } else {
         //we need to call the next two lines to make sure that the trajectory
         //planner updates its path distance and goal distance grids
-        tc_->updatePlan(transformed_plan);
-        Trajectory path = tc_->findBestPath(global_pose, robot_vel, drive_cmds);
+        ep_->updatePlan(transformed_plan);
+        Trajectory path = ep_->findBestPath(global_pose, robot_vel, drive_cmds);
         map_viz_.publishCostCloud(costmap_);
 
         //copy over the odometry information
@@ -477,12 +477,13 @@ namespace base_local_planner {
 
       //we don't actually want to run the controller when we're just rotating to goal
       return true;
-    }
+    } 
+    // else ... NOT reached the goal
 
-    tc_->updatePlan(transformed_plan);
+    ep_->updatePlan(transformed_plan);
 
     //compute what trajectory to drive along
-    Trajectory path = tc_->findBestPath(global_pose, robot_vel, drive_cmds);
+    Trajectory path = ep_->findBestPath(global_pose, robot_vel, drive_cmds);
 
     map_viz_.publishCostCloud(costmap_);
     /* For timing uncomment
@@ -542,7 +543,7 @@ namespace base_local_planner {
         geometry_msgs::PoseStamped pose_msg;
         tf::poseStampedTFToMsg(global_pose, pose_msg);
         plan.push_back(pose_msg);
-        tc_->updatePlan(plan, true);
+        ep_->updatePlan(plan, true);
       }
 
       //copy over the odometry information
@@ -552,7 +553,7 @@ namespace base_local_planner {
         base_odom = base_odom_;
       }
 
-      return tc_->checkTrajectory(global_pose.getOrigin().x(), global_pose.getOrigin().y(), tf::getYaw(global_pose.getRotation()),
+      return ep_->checkTrajectory(global_pose.getOrigin().x(), global_pose.getOrigin().y(), tf::getYaw(global_pose.getRotation()),
           base_odom.twist.twist.linear.x,
           base_odom.twist.twist.linear.y,
           base_odom.twist.twist.angular.z, vx_samp, vy_samp, vtheta_samp);
@@ -574,7 +575,7 @@ namespace base_local_planner {
         geometry_msgs::PoseStamped pose_msg;
         tf::poseStampedTFToMsg(global_pose, pose_msg);
         plan.push_back(pose_msg);
-        tc_->updatePlan(plan, true);
+        ep_->updatePlan(plan, true);
       }
 
       //copy over the odometry information
@@ -584,7 +585,7 @@ namespace base_local_planner {
         base_odom = base_odom_;
       }
 
-      return tc_->scoreTrajectory(global_pose.getOrigin().x(), global_pose.getOrigin().y(), tf::getYaw(global_pose.getRotation()),
+      return ep_->scoreTrajectory(global_pose.getOrigin().x(), global_pose.getOrigin().y(), tf::getYaw(global_pose.getRotation()),
           base_odom.twist.twist.linear.x,
           base_odom.twist.twist.linear.y,
           base_odom.twist.twist.angular.z, vx_samp, vy_samp, vtheta_samp);

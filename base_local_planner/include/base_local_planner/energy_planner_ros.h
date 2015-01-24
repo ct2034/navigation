@@ -160,7 +160,7 @@ namespace base_local_planner {
       }
 
       /** @brief Return the inner EnergyPlanner object.  Only valid after initialize(). */
-      EnergyPlanner* getPlanner() const { return tc_; }
+      EnergyPlanner* getPlanner() const { return ep_; }
 
     private:
       /**
@@ -194,7 +194,7 @@ namespace base_local_planner {
       }
 
       WorldModel* world_model_; ///< @brief The world model that the controller will use
-      EnergyPlanner* tc_; ///< @brief The trajectory controller
+      EnergyPlanner* ep_; ///< @brief The trajectory controller
 
       costmap_2d::Costmap2DROS* costmap_ros_; ///< @brief The ROS wrapper for the costmap the controller will use
       costmap_2d::Costmap2D* costmap_; ///< @brief The costmap the controller will use
