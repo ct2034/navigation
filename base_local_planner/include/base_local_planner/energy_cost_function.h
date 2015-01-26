@@ -43,6 +43,8 @@
 #include <base_local_planner/costmap_model.h>
 #include <costmap_2d/costmap_2d.h>
 
+#include "auckbot_analysis/ModelTheta.h"
+
 #include <iostream>
 #include <fstream>
 
@@ -69,6 +71,8 @@ public:
 
   void setLastSpeeds(double x, double y, double th);
 
+  void thetaCallback(const auckbot_analysis::ModelTheta msg);
+
 private:
   costmap_2d::Costmap2D* costmap_;
   base_local_planner::WorldModel* world_model_;
@@ -78,9 +82,9 @@ private:
   double max_scaling_factor_, scaling_speed_;
 
   //energy considerations
-  float last_speeds_[3];
+  double last_speeds_[3];
   bool new_set_;
-
+  double theta_ [7];
 };
 
 } /* namespace base_local_planner */
