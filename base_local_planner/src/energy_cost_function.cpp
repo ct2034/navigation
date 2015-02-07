@@ -46,13 +46,12 @@
 #define PI 3.14159265359
 #define DOF 3
 #define N_MAX 50
-#define TRAJ_SCALE 1
 
 namespace base_local_planner {
 
 // some very bad global coding -> to be sorted out ======================================
 float route_length = 0;
-int i = 0; 
+int iter = 0; 
 float ocoord[3];
 
 void poseToXYTh(geometry_msgs::PoseStamped pose, float coordsarr[]){
@@ -65,10 +64,10 @@ void calcl(geometry_msgs::PoseStamped p) {
   float coord[3];
   poseToXYTh(p, coord);
 
-  if (i>0) {
+  if (iter>0) {
     route_length += hypot(fabs(ocoord[0] - coord[0]), fabs(ocoord[1] - coord[1]));
   }
-  i++;
+  iter++;
 
   for (int j = 0; j < DOF; j++) {
     ocoord[j] = coord[j];
@@ -121,17 +120,21 @@ double EnergyCostFunction::scoreTrajectory(Trajectory &traj) {
   double dis [3][N_MAX];
   double vel [3][N_MAX];
   double vel_mean [3];
+  double vel_end [3];
   double acc [3][N_MAX];
   double acc_mean [3];
   double t = traj.time_delta_;
-  double E_traj, E_route;
+  double E_traj, E_route, E_total;
+  double t_route = 0;
+  double traj_scale = 0;
 
   for (int j = 0; j < DOF; j++) {
     vel_mean[j] = 0; 
     acc_mean[j] = 0; 
   }
 
-  for (int i = 0; i < n; ++i) {
+  int i; // (WE WILL NEED THE i LATER !!)
+  for (i = 0; i < n; ++i) { 
     traj.getPoint(i, x, y, th);
     dis [0][i] = x;
     dis [1][i] = y;
@@ -151,7 +154,7 @@ double EnergyCostFunction::scoreTrajectory(Trajectory &traj) {
         vel_mean[j] += fabs(vel[j][i-1]);
       }
 
-      // traj_lengths
+      // traj_length~s
       traj_length += hypot((dis[0][i-1] - dis[0][i]), (dis[1][i-1] - dis[1][i]));
       rot += fmod(fabs(dis[2][i-1] - dis[2][i]), (2*PI));
     }
@@ -170,12 +173,17 @@ double EnergyCostFunction::scoreTrajectory(Trajectory &traj) {
       }
     }
   }
+  // end 
+  for (int j = 0; j < DOF; j++) {
+    vel_end[j] += vel[j][i-1]; // (WE STILL USE THE i !!)
+  }
 
   for (int j = 0; j < DOF; j++) {
     vel_mean[j] /= n-1;
     acc_mean[j] /= n-2; 
   }
-    
+ 
+  // TRAJECTORY COST   
   E_traj = 
    (theta_[0] +                 //  th_1
     theta_[1] * vel_mean[0] +   //  v_x
@@ -185,15 +193,30 @@ double EnergyCostFunction::scoreTrajectory(Trajectory &traj) {
     theta_[5] * acc_mean[1] +   //  a_y
     theta_[6] * acc_mean[2] ) * //  a_th
     n * t /                     //  * duration
-    hypot(traj_length, rot);         //  / distance
+    hypot(traj_length, rot);    //  / distance
 
-  E_route = 0;
+  // ROUTE COST
+  if (route_length > traj_length) {
+    t_route = route_length - traj_length / hypot(vel_end[0], vel_end[1]);
+    E_route = 
+     (theta_[0] +                 //  th_1
+      theta_[1] * vel_end[0] +    //  v_x
+      theta_[2] * vel_end[1] +    //  v_y
+      theta_[3] * vel_end[2] ) *  //  v_th
+      t_route /                   //  * duration
+      route_length - traj_length; //  / distance
+    traj_scale = traj_length / route_length;       
+  } else { // trajectory leads already to goal
+    E_route = 0;
+    traj_scale = 1; 
+  }
 
   // ROS_INFO(">>> scoreTrajectory s:%d, l:%.2f, r:%.2f, v:%.3f, a:%.3f, e:%.3f", \
-  //  traj.getPointsSize(), traj_length, rot, vel[0][0], acc[0][0], E_traj);
-  ROS_INFO("-- lengths: %.1f // %.1f", traj_length, route_length);
+  //   traj.getPointsSize(), traj_length, rot, vel[0][0], acc[0][0], E_traj);
+  // ROS_INFO("-- lengths: %.1f // %.1f", traj_length, route_length);
+  // ROS_INFO("HYPO TEST (all shoud be positive) %.1f, %.1f, %.1f", hypot(-3.0, -4.0), hypot(3.0, -4.0), hypot(-3.0, 4.0));
 
-  cost = E_traj * TRAJ_SCALE + E_route * (1-TRAJ_SCALE) ;
+  cost = E_traj * traj_scale + E_route * (1-traj_scale) ;
   return cost;
 }
 
@@ -213,12 +236,12 @@ void EnergyCostFunction::setRoute(std::vector<geometry_msgs::PoseStamped> global
 
   float goalc[3];
   poseToXYTh(goal, goalc);
-  ROS_INFO("Goal: %f, %f, %f", goalc[0], goalc[1], goalc[2]);
+  // ROS_INFO("Goal: %f, %f, %f", goalc[0], goalc[1], goalc[2]);
 
-  i = 0;
+  iter = 0;
   route_length = 0;
   for_each (route_.begin(), route_.end(), calcl);
-  ROS_INFO("Length: %f", route_length);
+  // ROS_INFO("Length: %f", route_length);
 }
 
 } /* namespace base_local_planner */

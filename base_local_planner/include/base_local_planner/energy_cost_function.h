@@ -42,6 +42,9 @@
 
 #include <base_local_planner/costmap_model.h>
 #include <costmap_2d/costmap_2d.h>
+#include <geometry_msgs/PoseStamped.h>
+
+#include <tf/transform_listener.h>
 
 #include "auckbot_analysis/ModelTheta.h"
 
@@ -73,6 +76,10 @@ public:
 
   void thetaCallback(const auckbot_analysis::ModelTheta msg);
 
+  void setRoute(std::vector<geometry_msgs::PoseStamped> global_plan);
+
+  // void poseToXYTh(geometry_msgs::PoseStamped pose, float coordsarr[]);
+
 private:
   costmap_2d::Costmap2D* costmap_;
   base_local_planner::WorldModel* world_model_;
@@ -85,6 +92,9 @@ private:
   double last_speeds_[3];
   bool new_set_;
   double theta_ [7];
+
+  //route
+  std::vector<geometry_msgs::PoseStamped> route_;
 };
 
 } /* namespace base_local_planner */
