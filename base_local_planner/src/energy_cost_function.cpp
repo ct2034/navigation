@@ -100,12 +100,12 @@ double EnergyCostFunction::scoreTrajectory(Trajectory &traj) {
   double t = traj.time_delta_;
   double E_traj, E_route;
 
-  for (unsigned int j = 0; j < DOF; j++) {
+  for (int j = 0; j < DOF; j++) {
     vel_mean[j] = 0; 
     acc_mean[j] = 0; 
   }
 
-  for (unsigned int i = 0; i < n; ++i) {
+  for (int i = 0; i < n; ++i) {
     traj.getPoint(i, x, y, th);
     dis [0][i] = x;
     dis [1][i] = y;
@@ -113,31 +113,45 @@ double EnergyCostFunction::scoreTrajectory(Trajectory &traj) {
     
     if (i > 0) // velocity
     {
-      for (unsigned int j = 0; j < DOF; j++) {
-        if (j < 2) vel[j][i-1] = (dis[j][i-1] - dis[j][i]) / t;
-        else vel[j][i-1] = fmod(abs(dis[j][i-1] - dis[j][i]), (2*PI)) / t;
+      // x
+      vel[0][i-1] = ( sin(dis[2][i-1])*(dis[0][i-1] - dis[0][i]) + cos(dis[2][i-1])*(dis[1][i-1] - dis[1][i]) ) / t;
+      // y
+      vel[1][i-1] = ( cos(dis[2][i-1])*(dis[0][i-1] - dis[0][i]) - sin(dis[2][i-1])*(dis[1][i-1] - dis[1][i]) ) / t;
+      // theta
+      vel[2][i-1] = fmod(abs(dis[2][i-1] - dis[2][i]), (2*PI)) / t;
+
+      // mean
+      for (int j = 0; j < DOF; j++) {
         vel_mean[j] += abs(vel[j][i-1]);
       }
+
+      // lengths
       length += hypot((dis[0][i-1] - dis[0][i]), (dis[1][i-1] - dis[1][i]));
       rot += fmod(abs(dis[2][i-1] - dis[2][i]), (2*PI));
     }
     if (i > 1) // acceleration
     {
-      for (unsigned int j = 0; j < DOF; j++) {
-        if (j < 2) acc[j][i-2] = (vel[j][i-2] - vel[j][i-1]) / t;
-        else acc[j][i-2] = fmod(abs(vel[j][i-2] - vel[j][i-1]), (2*PI)) / t;
+      // x
+      acc[0][i-2] = ( sin(dis[2][i-2])*(vel[0][i-2] - vel[0][i-1]) + cos(dis[2][i-2])*(vel[1][i-2] - vel[1][i-1]) ) / t;
+      // y
+      acc[1][i-2] = ( cos(dis[2][i-2])*(vel[0][i-2] - vel[0][i-1]) - sin(dis[2][i-2])*(vel[1][i-2] - vel[1][i-1]) ) / t;
+      // theta
+      acc[2][i-2] = fmod(abs(vel[2][i-2] - vel[2][i-1]), (2*PI)) / t;
+
+      // mean
+      for (int j = 0; j < DOF; j++) {
         acc_mean[j] += acc[j][i-2];
       }
     }
   }
 
-  for (unsigned int j = 0; j < DOF; j++) {
+  for (int j = 0; j < DOF; j++) {
     vel_mean[j] /= n-1;
     acc_mean[j] /= n-2; 
   }
     
-  E_traj = (
-    theta_[0] +                 //  th_1
+  E_traj = 
+   (theta_[0] +                 //  th_1
     theta_[1] * vel_mean[0] +   //  v_x
     theta_[2] * vel_mean[1] +   //  v_y
     theta_[3] * vel_mean[2] +   //  v_th
