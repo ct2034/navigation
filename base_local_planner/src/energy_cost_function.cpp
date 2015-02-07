@@ -83,13 +83,13 @@ EnergyCostFunction::EnergyCostFunction(costmap_2d::Costmap2D* costmap)
   new_set_ = false;
   ROS_INFO(">>> EnergyCostFunction Created");
 
-  theta_[0] = .3;
-  theta_[1] = .2;
-  theta_[2] = .2;
-  theta_[3] = .1;
-  theta_[4] = .3;
-  theta_[5] = .3;
-  theta_[6] = .1;
+  theta_[0] = 1;
+  theta_[1] = .3;
+  theta_[2] = .4;
+  theta_[3] = .2;
+  theta_[4] = .001;
+  theta_[5] = .001;
+  theta_[6] = .001;
 }
 
 EnergyCostFunction::~EnergyCostFunction() {
@@ -185,26 +185,26 @@ double EnergyCostFunction::scoreTrajectory(Trajectory &traj) {
  
   // TRAJECTORY COST   
   E_traj = 
-   (theta_[0] +                 //  th_1
-    theta_[1] * vel_mean[0] +   //  v_x
-    theta_[2] * vel_mean[1] +   //  v_y
-    theta_[3] * vel_mean[2] +   //  v_th
-    theta_[4] * acc_mean[0] +   //  a_x
-    theta_[5] * acc_mean[1] +   //  a_y
-    theta_[6] * acc_mean[2] ) * //  a_th
-    n * t /                     //  * duration
-    hypot(traj_length, rot);    //  / distance
+   (theta_[0] +                       //  th_1
+    theta_[1] * fabs(vel_mean[0]) +   //  v_x
+    theta_[2] * fabs(vel_mean[1]) +   //  v_y
+    theta_[3] * fabs(vel_mean[2]) +   //  v_th
+    theta_[4] * acc_mean[0] +         //  a_x
+    theta_[5] * acc_mean[1] +         //  a_y
+    theta_[6] * fabs(acc_mean[2]) ) * //  a_th
+    n * t /                           //  * duration
+    hypot(traj_length, rot);          //  / distance
 
   // ROUTE COST
   if (route_length > traj_length) {
     t_route = route_length - traj_length / hypot(vel_end[0], vel_end[1]);
     E_route = 
-     (theta_[0] +                 //  th_1
-      theta_[1] * vel_end[0] +    //  v_x
-      theta_[2] * vel_end[1] +    //  v_y
-      theta_[3] * vel_end[2] ) *  //  v_th
-      t_route /                   //  * duration
-      route_length - traj_length; //  / distance
+     (theta_[0] +                       //  th_1
+      theta_[1] * fabs(vel_end[0]) +    //  v_x
+      theta_[2] * fabs(vel_end[1]) +    //  v_y
+      theta_[3] * fabs(vel_end[2]) ) *  //  v_th
+      t_route /                         //  * duration
+      route_length - traj_length;       //  / distance
     traj_scale = traj_length / route_length;       
   } else { // trajectory leads already to goal
     E_route = 0;
