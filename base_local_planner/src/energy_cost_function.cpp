@@ -50,6 +50,32 @@
 
 namespace base_local_planner {
 
+// some very bad global coding -> to be sorted out ======================================
+float route_length = 0;
+int i = 0; 
+float ocoord[3];
+
+void poseToXYTh(geometry_msgs::PoseStamped pose, float coordsarr[]){
+  coordsarr[0] = pose.pose.position.x;
+  coordsarr[1] = pose.pose.position.y;
+  coordsarr[2] = tf::getYaw(pose.pose.orientation);
+}
+
+void calcl(geometry_msgs::PoseStamped p) {
+  float coord[3];
+  poseToXYTh(p, coord);
+
+  if (i>0) {
+    route_length += hypot(fabs(ocoord[0] - coord[0]), fabs(ocoord[1] - coord[1]));
+  }
+  i++;
+
+  for (int j = 0; j < DOF; j++) {
+    ocoord[j] = coord[j];
+  }
+}
+// ======================================================================================
+
 EnergyCostFunction::EnergyCostFunction(costmap_2d::Costmap2D* costmap) 
     : costmap_(costmap), sum_scores_(false) {
   if (costmap != NULL) {
@@ -89,7 +115,7 @@ double EnergyCostFunction::scoreTrajectory(Trajectory &traj) {
   double cost = 0;
   double x, y, th;
   double ox, oy, oth;
-  double length = 0;
+  double traj_length = 0;
   double rot = 0;
   double n = traj.getPointsSize();
   double dis [3][N_MAX];
@@ -118,16 +144,16 @@ double EnergyCostFunction::scoreTrajectory(Trajectory &traj) {
       // y
       vel[1][i-1] = ( cos(dis[2][i-1])*(dis[0][i-1] - dis[0][i]) - sin(dis[2][i-1])*(dis[1][i-1] - dis[1][i]) ) / t;
       // theta
-      vel[2][i-1] = fmod(abs(dis[2][i-1] - dis[2][i]), (2*PI)) / t;
+      vel[2][i-1] = fmod(fabs(dis[2][i-1] - dis[2][i]), (2*PI)) / t;
 
       // mean
       for (int j = 0; j < DOF; j++) {
-        vel_mean[j] += abs(vel[j][i-1]);
+        vel_mean[j] += fabs(vel[j][i-1]);
       }
 
-      // lengths
-      length += hypot((dis[0][i-1] - dis[0][i]), (dis[1][i-1] - dis[1][i]));
-      rot += fmod(abs(dis[2][i-1] - dis[2][i]), (2*PI));
+      // traj_lengths
+      traj_length += hypot((dis[0][i-1] - dis[0][i]), (dis[1][i-1] - dis[1][i]));
+      rot += fmod(fabs(dis[2][i-1] - dis[2][i]), (2*PI));
     }
     if (i > 1) // acceleration
     {
@@ -136,7 +162,7 @@ double EnergyCostFunction::scoreTrajectory(Trajectory &traj) {
       // y
       acc[1][i-2] = ( cos(dis[2][i-2])*(vel[0][i-2] - vel[0][i-1]) - sin(dis[2][i-2])*(vel[1][i-2] - vel[1][i-1]) ) / t;
       // theta
-      acc[2][i-2] = fmod(abs(vel[2][i-2] - vel[2][i-1]), (2*PI)) / t;
+      acc[2][i-2] = fmod(fabs(vel[2][i-2] - vel[2][i-1]), (2*PI)) / t;
 
       // mean
       for (int j = 0; j < DOF; j++) {
@@ -159,12 +185,13 @@ double EnergyCostFunction::scoreTrajectory(Trajectory &traj) {
     theta_[5] * acc_mean[1] +   //  a_y
     theta_[6] * acc_mean[2] ) * //  a_th
     n * t /                     //  * duration
-    hypot(length, rot);         //  / distance
+    hypot(traj_length, rot);         //  / distance
 
   E_route = 0;
 
   // ROS_INFO(">>> scoreTrajectory s:%d, l:%.2f, r:%.2f, v:%.3f, a:%.3f, e:%.3f", \
-  //   traj.getPointsSize(), length, rot, vel[0][0], acc[0][0], E_traj);
+  //  traj.getPointsSize(), traj_length, rot, vel[0][0], acc[0][0], E_traj);
+  ROS_INFO("-- lengths: %.1f // %.1f", traj_length, route_length);
 
   cost = E_traj * TRAJ_SCALE + E_route * (1-TRAJ_SCALE) ;
   return cost;
@@ -178,6 +205,20 @@ void EnergyCostFunction::setLastSpeeds(double x, double y, double th) {
 
 void EnergyCostFunction::thetaCallback(const auckbot_analysis::ModelTheta msg) {
   ROS_INFO("------> thetaCallback <----");
+}
+
+void EnergyCostFunction::setRoute(std::vector<geometry_msgs::PoseStamped> global_plan) {
+  route_ = global_plan;
+  geometry_msgs::PoseStamped goal = route_.back();
+
+  float goalc[3];
+  poseToXYTh(goal, goalc);
+  ROS_INFO("Goal: %f, %f, %f", goalc[0], goalc[1], goalc[2]);
+
+  i = 0;
+  route_length = 0;
+  for_each (route_.begin(), route_.end(), calcl);
+  ROS_INFO("Length: %f", route_length);
 }
 
 } /* namespace base_local_planner */
