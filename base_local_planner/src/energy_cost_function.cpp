@@ -86,10 +86,10 @@ EnergyCostFunction::EnergyCostFunction(costmap_2d::Costmap2D* costmap)
   theta_[0] = 1;
   theta_[1] = .3;
   theta_[2] = .4;
-  theta_[3] = .2;
+  theta_[3] = .4;
   theta_[4] = .001;
   theta_[5] = .001;
-  theta_[6] = .001;
+  theta_[6] = .003;
 }
 
 EnergyCostFunction::~EnergyCostFunction() {
