@@ -50,8 +50,8 @@
 namespace base_local_planner {
 
 // some very bad global coding -> to be sorted out ======================================
-float route_length = 0;
-int iter = 0; 
+float route_length;
+int iter; 
 float ocoord[3];
 
 void poseToXYTh(geometry_msgs::PoseStamped pose, float coordsarr[]){
