@@ -189,8 +189,8 @@ double EnergyCostFunction::scoreTrajectory(Trajectory &traj) {
     theta_[1] * fabs(vel_mean[0]) +   //  v_x
     theta_[2] * fabs(vel_mean[1]) +   //  v_y
     theta_[3] * fabs(vel_mean[2]) +   //  v_th
-    theta_[4] * acc_mean[0] +         //  a_x
-    theta_[5] * acc_mean[1] +         //  a_y
+    theta_[4] * fabs(acc_mean[0]) +         //  a_x
+    theta_[5] * fabs(acc_mean[1]) +         //  a_y
     theta_[6] * fabs(acc_mean[2]) ) * //  a_th
     n * t /                           //  * duration
     hypot(traj_length, rot);          //  / distance
