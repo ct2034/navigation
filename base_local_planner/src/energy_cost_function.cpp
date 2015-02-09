@@ -211,6 +211,9 @@ double EnergyCostFunction::scoreTrajectory(Trajectory &traj) {
     traj_scale = 1; 
   }
 
+	traj_scale += 0.2;
+	if (traj_scale > 1) traj_scale = 1;
+
   // ROS_INFO(">>> scoreTrajectory s:%d, l:%.2f, r:%.2f, v:%.3f, a:%.3f, e:%.3f", \
   //   traj.getPointsSize(), traj_length, rot, vel[0][0], acc[0][0], E_traj);
   // ROS_INFO("-- lengths: %.1f // %.1f", traj_length, route_length);
