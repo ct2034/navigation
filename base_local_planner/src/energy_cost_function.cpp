@@ -127,6 +127,7 @@ double EnergyCostFunction::scoreTrajectory(Trajectory &traj) {
   double E_traj, E_route, E_total;
   double t_route = 0;
   double traj_scale = 0;
+  double self_scale = 0;
 
   for (int j = 0; j < DOF; j++) {
     vel_mean[j] = 0; 
@@ -211,8 +212,9 @@ double EnergyCostFunction::scoreTrajectory(Trajectory &traj) {
     traj_scale = 1; 
   }
 
-	traj_scale += 0.2;
+	traj_scale += 0.3;
 	if (traj_scale > 1) traj_scale = 1;
+	self_scale = 0.7;
 
   // ROS_INFO(">>> scoreTrajectory s:%d, l:%.2f, r:%.2f, v:%.3f, a:%.3f, e:%.3f", \
   //   traj.getPointsSize(), traj_length, rot, vel[0][0], acc[0][0], E_traj);
@@ -220,6 +222,10 @@ double EnergyCostFunction::scoreTrajectory(Trajectory &traj) {
   // ROS_INFO("HYPO TEST (all shoud be positive) %.1f, %.1f, %.1f", hypot(-3.0, -4.0), hypot(3.0, -4.0), hypot(-3.0, 4.0));
 
   cost = E_traj * traj_scale + E_route * (1-traj_scale) ;
+	cost *= self_scale;
+
+	ROS_INFO(">>> traj_scale: %4.2f, cost: %3.1f", traj_scale, cost);
+	ROS_INFO("    traj_length: %5.2f, route_length: %5.2f", traj_length, route_length);
   return cost;
 }
 
