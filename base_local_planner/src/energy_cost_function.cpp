@@ -87,17 +87,8 @@ EnergyCostFunction::EnergyCostFunction(costmap_2d::Costmap2D* costmap)
   ros::NodeHandle n("~/EDWAPlannerROS");
   ROS_INFO(">>> EnergyCostFunction Created");
 
-  theta_[0] = 0;
-  // n.getParam("theta_0", theta_[0]);
-  // ROS_INFO("theta_0 is %f", theta_[0]);
-  theta_[1] = 0;
-  theta_[2] = 0;
-  theta_[3] = 0;
-  theta_[4] = 0;
-  theta_[5] = 0;
-  theta_[6] = 0;
-
-  for (int i = 0; i < 6; ++i) { 
+  for (int i = 0; i < 7; ++i) { 
+  	theta_[i] = 0;
   	char paramName [8];
   	sprintf (paramName, "theta_%d", i);
   	n.getParam(paramName, theta_[i]);
