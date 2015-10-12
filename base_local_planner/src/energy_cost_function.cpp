@@ -36,8 +36,11 @@
  *********************************************************************/
 
 #include <base_local_planner/energy_cost_function.h>
+
 #include <cmath>
 #include <Eigen/Core>
+
+#include <ros/ros.h>
 #include <ros/console.h>
 
 #include <iostream>
@@ -81,15 +84,25 @@ EnergyCostFunction::EnergyCostFunction(costmap_2d::Costmap2D* costmap)
     world_model_ = new base_local_planner::CostmapModel(*costmap_);
   }
   new_set_ = false;
+  ros::NodeHandle n("~/EDWAPlannerROS");
   ROS_INFO(">>> EnergyCostFunction Created");
 
-  theta_[0] = 1;
-  theta_[1] = .3;
-  theta_[2] = .4;
-  theta_[3] = .4;
-  theta_[4] = .001;
-  theta_[5] = .001;
-  theta_[6] = .003;
+  theta_[0] = 0;
+  // n.getParam("theta_0", theta_[0]);
+  // ROS_INFO("theta_0 is %f", theta_[0]);
+  theta_[1] = 0;
+  theta_[2] = 0;
+  theta_[3] = 0;
+  theta_[4] = 0;
+  theta_[5] = 0;
+  theta_[6] = 0;
+
+  for (int i = 0; i < 6; ++i) { 
+  	char paramName [8];
+  	sprintf (paramName, "theta_%d", i);
+  	n.getParam(paramName, theta_[i]);
+  	ROS_INFO("theta_[%d] is %f", i, theta_[i]);
+  }
 }
 
 EnergyCostFunction::~EnergyCostFunction() {
@@ -216,10 +229,10 @@ double EnergyCostFunction::scoreTrajectory(Trajectory &traj) {
 	if (traj_scale > 1) traj_scale = 1;
 	self_scale = 0.7;
 
-  // ROS_INFO(">>> scoreTrajectory s:%d, l:%.2f, r:%.2f, v:%.3f, a:%.3f, e:%.3f", \
-  //   traj.getPointsSize(), traj_length, rot, vel[0][0], acc[0][0], E_traj);
-  // ROS_INFO("-- lengths: %.1f // %.1f", traj_length, route_length);
-  // ROS_INFO("HYPO TEST (all shoud be positive) %.1f, %.1f, %.1f", hypot(-3.0, -4.0), hypot(3.0, -4.0), hypot(-3.0, 4.0));
+  ROS_INFO(">>> scoreTrajectory s:%d, l:%.2f, r:%.2f, v:%.3f, a:%.3f, e:%.3f", \
+    traj.getPointsSize(), traj_length, rot, vel[0][0], acc[0][0], E_traj);
+  ROS_INFO("-- lengths: %.1f // %.1f", traj_length, route_length);
+  ROS_INFO("HYPO TEST (all shoud be positive) %.1f, %.1f, %.1f", hypot(-3.0, -4.0), hypot(3.0, -4.0), hypot(-3.0, 4.0));
 
   cost = E_traj * traj_scale + E_route * (1-traj_scale) ;
 	cost *= self_scale;
@@ -245,12 +258,12 @@ void EnergyCostFunction::setRoute(std::vector<geometry_msgs::PoseStamped> global
 
   float goalc[3];
   poseToXYTh(goal, goalc);
-  // ROS_INFO("Goal: %f, %f, %f", goalc[0], goalc[1], goalc[2]);
+  ROS_INFO("Goal: %f, %f, %f", goalc[0], goalc[1], goalc[2]);
 
   iter = 0;
   route_length = 0;
   for_each (route_.begin(), route_.end(), calcl);
-  // ROS_INFO("Length: %f", route_length);
+  ROS_INFO("Length: %f", route_length);
 }
 
 } /* namespace base_local_planner */
